@@ -1,32 +1,60 @@
 package bravo.launcher;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.GestureDescription;
+import android.graphics.Path;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityNodeInfo;
-import java.util.List;
 
 public class BravoAccessibilityService extends AccessibilityService {
-    private long lastClick = 0;
 
-    @Override public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event.getPackageName() == null || !"com.android.chrome".contentEquals(event.getPackageName())) return;
-        if (SystemClock.elapsedRealtime() - lastClick < 5000) return;
+    private long lastAttempt = 0;
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
-        AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) return;
-        List<AccessibilityNodeInfo> nodes = root.findAccessibilityNodeInfosByText("ABRIR SCREENHUB");
-        if (nodes == null) return;
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {
 
-        for (AccessibilityNodeInfo node : nodes) {
-            AccessibilityNodeInfo target = node;
-            while (target != null && !target.isClickable()) target = target.getParent();
-            if (target != null && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-                lastClick = SystemClock.elapsedRealtime();
-                return;
-            }
+        if (event.getPackageName() == null ||
+                !"com.android.chrome".contentEquals(event.getPackageName())) {
+            return;
         }
+
+        // Evita vários cliques durante o carregamento do Chrome
+        if (SystemClock.elapsedRealtime() - lastAttempt < 10000) {
+            return;
+        }
+
+        lastAttempt = SystemClock.elapsedRealtime();
+
+        // Aguarda o ScreenHub carregar e o botão aparecer
+        handler.postDelayed(this::tocarBotaoFullscreen, 5000);
     }
 
-    @Override public void onInterrupt() { }
+    private void tocarBotaoFullscreen() {
+
+        Path path = new Path();
+
+        // Coordenada já testada na TV: 1280x720
+        path.moveTo(640, 650);
+
+        GestureDescription.StrokeDescription toque =
+                new GestureDescription.StrokeDescription(
+                        path,
+                        0,
+                        150
+                );
+
+        GestureDescription gesto =
+                new GestureDescription.Builder()
+                        .addStroke(toque)
+                        .build();
+
+        dispatchGesture(gesto, null, null);
+    }
+
+    @Override
+    public void onInterrupt() {
+    }
 }
