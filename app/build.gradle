@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'bravo.launcher'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'bravo.launcher'
+        minSdk 24
+        targetSdk 28
+        versionCode 1
+        versionName '0.1-test'
+    }
+}
